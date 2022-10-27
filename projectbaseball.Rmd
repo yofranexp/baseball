@@ -1,0 +1,248 @@
+---
+params:
+  data: !r
+  CustomTitle: ""
+title: "`r params$CustomTitle`"
+subtitle: "REPORT PITCH GAME"
+author: "Yofran Perdomo"
+institute: "MLB"
+date: "2022/25/12 (updated: `r Sys.Date()`)"
+output:
+  xaringan::moon_reader:
+    css: shinobi
+    lib_dir: libs
+    nature:
+      highlightStyle: arta
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+
+
+```{r setup, include=FALSE}
+# options(
+#   htmltools.dir.version  = FALSE,
+#   htmltools.preserve.raw = FALSE # needed for windows
+# )
+#Library----
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(viridis)
+```
+
+
+# ZONE STRIKE BY CODE
+
+
+```{r, out.width="80%", out.height="50%", warning=FALSE, message=FALSE, echo =FALSE}
+# by code
+graph_code <- params$data %>%
+  ggplot(aes(px, pz, color = as.factor(Code), size = 1))+
+  geom_point()+
+  theme(panel.background = element_rect(fill = "white"))+
+  guides(color = guide_legend(title = "Legend"),
+         size = guide_legend(title = " "))+
+  annotate("rect", xmin=-1, xmax=1, ymin=1.5, ymax=3.4, fill="red", alpha=0.1, color = "black")
+
+ggplotly(graph_code)
+
+```
+
+----
+
+# ZONE STRIKE BY PITCH
+```{r, echo=FALSE, out.height="70%",out.width="100%"}
+graph_pitch <- params$data %>%
+  ggplot(aes(px, pz, color = as.factor(PitchType), size = 1))+
+  geom_point()+
+  theme(panel.background = element_rect(fill = "white"))+
+  guides(color = guide_legend(title = "Legend"),
+         size = guide_legend(title = " "))+
+  annotate("rect", xmin=-1, xmax=1, ymin=1.5, ymax=3.4, fill="red", alpha=0.1, color = "black")
+ggplotly(graph_pitch)
+
+
+```
+
+---
+# ZONE STRIKE BY EVENT
+
+```{r, echo=FALSE, out.height="70%",out.width="100%", warning=FALSE, message=FALSE}
+# By event
+event_p <- params$data %>%
+  group_by(inning,pitcher_id, event) %>%
+  summarise(Event = last(event),
+            px = last(px),
+            pz = last(pz))
+
+graph_event <- event_p %>%
+  ggplot(aes(px, pz, size = 1, color =  Event))+
+  geom_point()+
+  guides(color = guide_legend(title = "Legend"),
+         size = guide_legend(title = " "))+
+  theme(panel.background = element_rect(fill = "white"))+
+  annotate("rect", xmin=-1, xmax=1, ymin=1.5, ymax=3.4, fill="red", alpha=0.2, color = "black")
+
+
+ggplotly(graph_event)
+
+```
+
+---
+# ZONE STRIKE BY VELO
+
+```{r, echo=FALSE, out.height="70%",out.width="100%"}
+graph_velostar <- params$data %>%
+  ggplot(aes(px, pz, color = start_speed, size = 1))+
+  geom_point()+
+  ggtitle("Launchs by Velocity")+
+  theme(panel.background = element_rect(fill = "white"))+
+  scale_color_viridis(direction = -1, option = "D", "VeloBall")+
+  annotate("rect", xmin=-1, xmax=1, ymin=1.5, ymax=3.4, fill="red", alpha=0.2, color = "black")
+
+ggplotly(graph_velostar)
+```
+
+
+---
+# TYPES OF PITCHING
+
+
+```{r, echo=FALSE, out.height="70%",out.width="100%"}
+  bar_pitching <- params$data%>%
+    group_by(PitchType) %>%
+    summarise(count = n()) %>%
+    ggplot(aes(reorder(PitchType, -count), count, fill = PitchType))+
+    geom_col()+
+    coord_flip()+
+    scale_fill_brewer(palette="Set1")+
+    labs(x= "Pitch Type", y = "Count", title = "Type of Game Pitching")+
+    theme(panel.background = element_rect(fill = "white"))
+
+ggplotly(bar_pitching)
+
+```
+
+
+---
+
+#BOX-PLOT VELOCITY
+
+```{r, echo=FALSE, out.height="70%",out.width="100%"}
+box_velocity <- params$data %>%
+    group_by(PitchType) %>%
+    ggplot(aes(PitchType, start_speed, fill = PitchType))+
+    geom_boxplot()+
+    coord_flip()+
+    labs(y = "Start Pitch", x = "Start Speed", title = "Velo by Pitch")+
+    theme(panel.background = element_rect(fill = "white"))+
+    scale_fill_brewer(palette="Set1")
+
+ggplotly(box_velocity)
+
+```
+
+---
+# PITCHER WITH MORE PITCHES
+
+```{r, echo= FALSE, warning=FALSE, message=FALSE}
+launches_game <- params$data %>%
+    group_by(inning, pitcher_id) %>%
+    summarise(lanza = max(pitch_num)) %>%
+    group_by(pitcher_id) %>%
+    summarise(launchs = sum(lanza)) %>%
+    arrange(desc(launchs))
+
+DT::datatable(head(launches_game),
+                extensions = 'FixedColumns',
+                options = list(
+                  dom = 't',
+                  scrollX = TRUE,
+                  fixedColumns = TRUE
+                ))
+
+
+
+```
+
+
+---
+# COMPARATION OF PITCHERS
+
+```{r,  echo=FALSE, out.height="70%",out.width="100%", warning=FALSE, message=FALSE}
+barchart_p <-  params$data %>%
+    filter(pitcher_id %in% c(launches_game$pitcher_id[2], launches_game$pitcher_id[1])) %>%
+    group_by(pitcher_id) %>%
+    count(event)%>%
+    mutate(pitcher_id = as.character(pitcher_id)) %>%
+    tidyr::gather(key =  "pitcher_id",value = "player", 1) %>%
+    select(-pitcher_id)
+
+
+
+fig1<- ggplot(barchart_p, aes(event, n, fill = player))+
+      geom_col(position = "fill")+
+      coord_flip()+
+      scale_fill_manual(values = c("#c92a0a", "#270ac9"))+
+      theme_minimal()+
+      geom_hline(yintercept = 0.5, color = "white", size = 1, linetype = 2)+
+      theme(legend.position = "top", axis.text.x=element_blank())+
+      labs(title = "Player 1 VS Player 2",
+           caption = "MLB",
+           fill = "Players",x = "Event", y = "Count")
+
+ggplotly(fig1)
+```
+
+
+---
+# COMPARATION OF VELOCITY
+
+```{r, echo=FALSE, out.height="70%",out.width="100%", warning=FALSE, message=FALSE}
+# comparation of velocity====
+  veloplayer1_f <- params$data %>%
+    dplyr::filter(pitcher_id == launches_game$pitcher_id[1])
+
+  veloplayer2_f <- params$data %>%
+    filter(pitcher_id == launches_game$pitcher_id[2])
+
+#-----
+  fig <- plot_ly()
+  # Add traces
+  fig <- fig %>% add_trace(x = 1:length(veloplayer1_f$start_speed), y = veloplayer1_f$start_speed, name = "Player 1", mode = "lines+markers", type = "scatter",
+                           line = list(color = 'black'),
+                           marker = list(color = "black",
+                                         line = list(color = "black", width = 2)))
+
+  ay <- list(
+    tickfont = list(color = "red"),
+    overlaying = "y",
+    side = "right",
+    title = "")
+
+  fig <- fig %>% add_trace(x = 1:length(veloplayer2_f$start_speed), y = veloplayer2_f$start_speed, name = "Player 2", yaxis = "y2", mode = "lines+markers", type = "scatter",
+                           line = list(color = 'darkred'),
+                           marker = list(color = "darkred",
+                                         line = list(color = "darkred", width = 2)))
+
+  # Set figure title, x and y-axes titles
+  fig <- fig %>% layout(
+    title = "Perfomance Pitchers", yaxis2 = ay,
+    xaxis = list(title="Pitch"),
+    yaxis = list(title="Velocity")
+  )%>%
+    layout(plot_bgcolor='#f2f5fa',
+           xaxis = list(
+             zerolinecolor = '#ffff',
+             zerolinewidth = 2,
+             gridcolor = 'ffff'),
+           yaxis = list(
+             zerolinecolor = '#ffff',
+             zerolinewidth = 2,
+             gridcolor = 'ffff')
+    )
+  fig
+```
+
+

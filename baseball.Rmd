@@ -1,0 +1,102 @@
+---
+title: "Untitled"
+author: "Yofran"
+date: "2022-10-25"
+output: powerpoint_presentation
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+#Library----
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(viridis)
+#read data====
+atbats <- read.csv(file =  "C:/Users/info/OneDrive/Desktop/work/Laboratorio/atbats.csv"
+)
+df_p <- read.csv(file =  "C:/Users/info/OneDrive/Desktop/work/Laboratorio/pitches.csv"
+)
+team <- read.csv(file =  "C:/Users/info/OneDrive/Desktop/work/Laboratorio/games.csv"
+)
+
+
+
+# cleaning data----
+team <- team %>%
+  select(g_id,home_team, away_team, date)
+
+complete_frame <- df_p %>%
+  full_join(atbats, by ='ab_id')
+
+complete_frame <- complete_frame %>%
+  mutate(Code = case_when(code == "*B" ~ "Ball in dirt",
+                          code == "B" ~ "Ball",
+                          code == "S" ~ "Swinging Strike",
+                          code == "C" ~ "Called Strike",
+                          code == "F" ~ "Foul",
+                          code == "T" ~ "Foul Tip",
+                          code == "L" ~ "Foul Bunt",
+                          code == "I" ~ "Intentional Ball",
+                          code == "W" ~ "Swinging Strike (Blocked)",
+                          code == "P" ~ "Pitchout",
+                          code == "Q" ~ "Swinging pitchout",
+                          code == "R" ~ "Foul pitchout",
+                          code == "X" ~ "In play, out(s)",
+                          code == "D" ~ "In play, no out",
+                          code == "E" ~ "In play, runs",
+                          code == "H" ~ "Hit by pitch",
+                          TRUE ~ "Others"
+                          ),
+         PitchType = case_when(pitch_type == "CH" ~ "Changeup",
+                              pitch_type == "CU" ~ "Curveball",
+                              pitch_type == "EP" ~ "Eephus",
+                              pitch_type == "FC" ~ "Cutter",
+                              pitch_type == "FF" ~ "Four-seam Fastball",
+                              pitch_type == "FS" ~ "Splitter",
+                              pitch_type == "FT" ~ "Two-seam Fastball",
+                              pitch_type == "IN" ~ "Intentional ball",
+                              pitch_type == "KC" ~ "Knuckle curve",
+                              pitch_type == "KN" ~ "Knuckeball",
+                              pitch_type == "SL" ~ "Slider",
+                              pitch_type == "PO" ~ "Pitchout",
+                              pitch_type == "SC" ~ "Screwball",
+                              pitch_type == "SI" ~ "Sinker",
+                              pitch_type == "FO" ~ "Pitchout",
+                              TRUE ~ "Unknown"))
+```
+
+## ZONE STRIKE BY CODE
+
+```{r, echo=F, warning=F, message=F, out.width="100%"}
+# by code
+graph_code <- complete_frame %>%
+  filter(g_id == 201500001) %>%
+  ggplot(aes(px, pz, color = as.factor(Code), size = 1))+
+  geom_point()+
+  theme(panel.background = element_rect(fill = "white"))+
+  guides(color = guide_legend(title = "Legend"),
+         size = guide_legend(title = " "))+
+  annotate("rect", xmin=-1, xmax=1, ymin=1.5, ymax=3.4, fill="red", alpha=0.1, color = "black")
+
+graph_code
+```
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
